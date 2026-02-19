@@ -10,6 +10,11 @@ env:
   TF_VAR_environment: dev
   TF_VAR_ddi_api_key: ${{ secrets.BLOXONE_API_KEY }}
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   terraform-plan:
     name: "Terraform Plan"
