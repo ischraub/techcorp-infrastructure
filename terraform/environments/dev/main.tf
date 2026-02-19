@@ -94,6 +94,11 @@ module "infoblox_dns" {
       address = "172.20.10.20"
       comment = "Monitoring dashboard endpoint"
     }
+    "grafana" = {
+      type    = "A"
+      address = "172.20.10.21"
+      comment = "Grafana dashboard"
+    }                                                                                                                 
   }
 
   depends_on = [module.infoblox_ipam]
