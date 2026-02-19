@@ -7,21 +7,40 @@
     portal_url: "{{ lookup('env', 'BLOXONE_CSP_URL') }}"
     portal_key: "{{ lookup('env', 'BLOXONE_API_KEY') }}"
     orphan_records:
-      - "legacy-app"
-      - "test-server"
-      - "old-api"
+      - { name: "legacy-app", ip: "192.168.99.10" }
+      - { name: "test-server", ip: "192.168.99.20" }
+      - { name: "old-api", ip: "192.168.99.30" }
 
   tasks:
+    - name: "Simulate orphan records (as if someone created them manually in the portal)"
+      infoblox.universal_ddi.dns_record:
+        portal_url: "{{ portal_url }}"
+        portal_key: "{{ portal_key }}"
+        zone: "{{ zone_id }}"
+        name_in_zone: "{{ item.name }}"
+        type: "A"
+        rdata:
+          address: "{{ item.ip }}"
+        comment: "Created outside Terraform — nobody owns this"
+        state: present
+      loop: "{{ orphan_records }}"
+
+    - name: "Show orphans exist"
+      debug:
+        msg: "Found {{ orphan_records | length }} orphan records — these exist in DNS but NOT in Terraform state. Terraform can't see them. Ansible can fix this."
+
     - name: Remove orphaned records
       infoblox.universal_ddi.dns_record:
         portal_url: "{{ portal_url }}"
         portal_key: "{{ portal_key }}"
         zone: "{{ zone_id }}"
-        name_in_zone: "{{ item }}"
+        name_in_zone: "{{ item.name }}"
         type: "A"
+        rdata:
+          address: "{{ item.ip }}"
         state: absent
       loop: "{{ orphan_records }}"
 
     - name: Report cleanup
       debug:
-        msg: "Cleaned up {{ orphan_records | length }} orphaned records"
+        msg: "Cleaned up {{ orphan_records | length }} orphaned records. They're gone from DNS — no Terraform state needed."
