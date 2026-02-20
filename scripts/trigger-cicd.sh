@@ -11,6 +11,8 @@
 
 set -e
 
+UPSTREAM="iracic82/techcorp-infrastructure"
+
 echo "============================================"
 echo "  TechCorp CI/CD Pipeline Launcher"
 echo "============================================"
@@ -29,13 +31,23 @@ echo ""
 
 # Step 1: Fork
 echo "=== Step 1: Forking repository ==="
-REPO="$GH_USER/techcorp-infrastructure"
 
-if gh repo view "$REPO" &>/dev/null; then
+# Check if user already has a fork of the upstream repo (handles renamed forks like techcorp-infrastructure-1)
+REPO=$(gh api "repos/$UPSTREAM/forks" --jq ".[] | select(.owner.login == \"$GH_USER\") | .full_name" 2>/dev/null | head -1)
+
+if [ -n "$REPO" ]; then
     echo "Fork already exists: https://github.com/$REPO"
 else
     echo "Creating fork..."
-    gh repo fork iracic82/techcorp-infrastructure --clone=false
+    gh repo fork "$UPSTREAM" --clone=false
+    sleep 5
+    # Detect the actual fork name (may be techcorp-infrastructure-1, etc.)
+    REPO=$(gh api "repos/$UPSTREAM/forks" --jq ".[] | select(.owner.login == \"$GH_USER\") | .full_name" 2>/dev/null | head -1)
+    if [ -z "$REPO" ]; then
+        echo "ERROR: Fork was created but could not detect its name."
+        echo "Check https://github.com/$GH_USER?tab=repositories for the fork."
+        exit 1
+    fi
     echo "Fork created: https://github.com/$REPO"
 fi
 
@@ -93,6 +105,11 @@ echo "  S3_BUCKET_NAME          ✓"
 
 echo ""
 echo "All 5 secrets configured!"
+
+# Save fork name for use by Scenario 6 (PR workflow)
+echo "$REPO" > /tmp/fork_repo_name
+echo ""
+echo "Fork repo saved to /tmp/fork_repo_name for later use."
 
 # Step 4: Trigger workflow
 echo ""
