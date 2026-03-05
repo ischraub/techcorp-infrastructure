@@ -89,6 +89,11 @@ module "infoblox_dns" {
       address = "172.20.10.10"
       comment = "Inventory API endpoint"
     }
+    "monitoring" = {
+      type    = "A"
+      address = "172.20.10.20"
+      comment = "Monitoring dashboard endpoint"
+    }
   }
 
   depends_on = [module.infoblox_ipam]
